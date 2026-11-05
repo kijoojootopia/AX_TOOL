@@ -71,6 +71,20 @@ details code{background:#f1f3f5;padding:1px 5px;border-radius:4px;font-size:12px
 #quote .q-sign div{border-top:1px solid #111;padding-top:4px;min-width:220px;text-align:center}
 #quote .pre{white-space:pre-line}
 footer{text-align:center;color:var(--muted);font-size:11px;margin-top:24px}
+.hs-cell{display:flex;gap:4px}
+.hs-cell input{min-width:110px}
+.hs-cell button{padding:4px 8px;white-space:nowrap}
+dialog{width:min(760px,calc(100vw - 32px));max-height:85vh;border:1px solid var(--line);border-radius:10px;padding:16px;color:var(--ink)}
+dialog::backdrop{background:rgba(0,0,0,.35)}
+.dlg-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+#hsList{max-height:55vh;overflow:auto;border-top:1px solid var(--line);margin-top:8px}
+.hs-row{display:grid;grid-template-columns:120px 1fr;gap:4px 10px;padding:8px 6px;border-bottom:1px solid var(--line);cursor:pointer}
+.hs-row:hover{background:var(--brand-soft)}
+.hs-row.sib{color:var(--muted)}
+.hs-row .c{font-family:Consolas,monospace;font-weight:600}
+.hs-row .en{grid-column:2;font-size:12px;color:var(--muted)}
+.hs-group{padding:6px;font-size:12px;font-weight:700;background:#fafbfc;border-bottom:1px solid var(--line)}
+@media (max-width:640px){.hs-row{grid-template-columns:1fr}.hs-row .en{grid-column:1}}
 
 @media (max-width:640px){
   .grid .wide{grid-column:span 1}
@@ -211,6 +225,8 @@ footer{text-align:center;color:var(--muted);font-size:11px;margin-top:24px}
       <div class="wide"><label>Lead Time</label><input data-k="leadTime" placeholder="30 days after receipt of deposit"></div>
       <div class="wide"><label>Packing</label><input data-k="packing" placeholder="Export standard carton"></div>
       <div><label>Origin</label><input data-k="origin2" placeholder="Republic of Korea"></div>
+      <div><label>견적서 HS Code 표기</label>
+        <select data-k="hsDigits"><option value="6">6자리 (국제 공통)</option><option value="all">입력값 그대로 (HSK 10자리)</option></select></div>
       <div class="wide"><label>Remarks</label><textarea rows="2" data-k="remarks"></textarea></div>
     </div>
   </section>
@@ -219,6 +235,13 @@ footer{text-align:center;color:var(--muted);font-size:11px;margin-top:24px}
     <h2><span class="n">5</span>견적서 미리보기</h2>
     <div class="tbl"><div id="quote"></div></div>
   </section>
+
+  <dialog id="hsDlg">
+    <div class="dlg-head"><b>HS Code 검색 (관세청 HSK)</b><button id="hsClose" aria-label="닫기">✕</button></div>
+    <input id="hsQ" placeholder="품명(한글·영문) 또는 코드 앞자리 — 예: 진공 플라스크, kitchenware, 9617">
+    <p class="hint" id="hsMeta"></p>
+    <div id="hsList"></div>
+  </dialog>
 
   <footer>참고용 계산 • 실제 견적은 회사 규정과 최신 운임·환율을 확인하세요</footer>
 </div>
@@ -245,7 +268,7 @@ function defaults(){
     sellerName:'', sellerAddr:'', buyerName:'', buyerAddr:'',
     quoteNo:'Q-'+d.replace(/-/g,'')+'-001', date:d, validDays:30, term:'FOB',
     exwPlace:'', pol:'Busan, Korea', pod:'', payment:'T/T 30% advance, 70% before shipment', paymentOther:'',
-    leadTime:'', packing:'Export standard carton', origin2:'Republic of Korea', remarks:'', sample:false
+    leadTime:'', packing:'Export standard carton', origin2:'Republic of Korea', remarks:'', hsDigits:'6', sample:false
   };
 }
 function sample(){
@@ -328,7 +351,7 @@ function renderItems(){
     <tr data-i="${i}">
       <td>${i+1}</td>
       <td class="name"><input data-f="name" value="${esc(it.name)}" placeholder="Item description"></td>
-      <td><input data-f="hs" value="${esc(it.hs)}" placeholder="0000.00"></td>
+      <td><div class="hs-cell"><input data-f="hs" value="${esc(it.hs)}" placeholder="0000.00"><button data-hs="${i}" title="관세청 HS Code 검색">검색</button></div></td>
       <td><input type="number" data-f="qty" value="${esc(it.qty)}" min="0"></td>
       <td><select data-f="unit">${[...new Set(['pcs','set','carton','kg',it.unit||'pcs'])].map(u=>`<option${u===it.unit?' selected':''}>${u}</option>`).join('')}</select></td>
       <td><input type="number" data-f="cost" value="${esc(it.cost)}" min="0" step="10"></td>
@@ -384,13 +407,17 @@ function render(){
   renderQuote(K);
 }
 
+function quoteHS(hs){
+  const d = String(hs||'').replace(/\D/g,'');
+  return S.hsDigits==='6' && d.length>=6 ? `${d.slice(0,4)}.${d.slice(4,6)}` : (hs||'');
+}
 function renderQuote(K){
   const d = K ? K.d : 2;
   const place = {EXW:S.exwPlace, FOB:S.pol, CFR:S.pod, CIF:S.pod}[S.term] || '';
   const terms = `${S.term} ${place} (Incoterms® 2020)`;
   const pay = S.payment==='other' ? S.paymentOther : S.payment;
   const rowsHtml = K ? K.rows.map((x,n)=>`
-    <tr><td style="text-align:center">${n+1}</td><td>${esc(x.it.name)}</td><td>${esc(x.it.hs)}</td>
+    <tr><td style="text-align:center">${n+1}</td><td>${esc(x.it.name)}</td><td>${esc(quoteHS(x.it.hs))}</td>
     <td class="num">${num(x.it.moq)?num(x.it.moq).toLocaleString('en-US'):'-'}</td>
     <td class="num">${x.q.toLocaleString('en-US')}</td><td>${esc(x.it.unit)}</td>
     <td class="num">${usd(x.qPrice,d)}</td><td class="num">${usd(x.qPrice*x.q)}</td></tr>`).join('')
@@ -435,6 +462,7 @@ document.addEventListener('input', e=>{
   save(); render();
 });
 $('#items').addEventListener('click', e=>{
+  const h = e.target.closest('[data-hs]'); if (h){ openHS(+h.dataset.hs); return; }
   const b = e.target.closest('[data-del]'); if(!b) return;
   S.items.splice(+b.dataset.del,1); if(!S.items.length) S.items.push(blankItem());
   save(); renderItems(); render();
@@ -443,6 +471,59 @@ $('#btnAdd').onclick = ()=>{ S.items.push(blankItem()); save(); renderItems(); r
 $('#btnSample').onclick = ()=>{ S = sample(); save(); fillCommon(); renderItems(); render(); };
 $('#btnReset').onclick = ()=>{ if(!confirm('입력값을 모두 지울까요?')) return; S = defaults(); save(); fillCommon(); renderItems(); render(); };
 $('#btnPrint').onclick = ()=> window.print();
+
+/* ---------- HS Code search (관세청 HSK, data/hsk.json) ---------- */
+let HSK = null, hsTarget = -1, hsTimer;
+const fmtHS = c => c.length===10 ? `${c.slice(0,4)}.${c.slice(4,6)}-${c.slice(6)}` : c;
+async function loadHSK(){
+  if (HSK) return HSK;
+  const r = await fetch('../data/hsk.json');
+  if (!r.ok) throw new Error();
+  HSK = await r.json();
+  HSK.rows.forEach(x => x.push((x[0]+' '+x[1]+' '+x[2]+' '+(HSK.cats[x[3]]||'')).toLowerCase()));
+  return HSK;
+}
+function searchHS(q){
+  q = q.trim().toLowerCase(); if (!q) return [];
+  const rows = HSK.rows, digits = q.replace(/[\s.\-]/g,'');
+  if (/^\d{2,}$/.test(digits)) return rows.filter(x=>x[0].startsWith(digits)).map(x=>[x,false]);
+  const toks = q.split(/\s+/);
+  const hit = new Set(rows.filter(x=>toks.every(t=>x[4].includes(t))));
+  const groups = new Set([...hit].map(x=>x[0].slice(0,6)));
+  // 맞은 코드 + 같은 6단위 소호의 나머지('기타' 등)를 함께 보여 줌
+  return rows.filter(x=>groups.has(x[0].slice(0,6))).map(x=>[x,!hit.has(x)]);
+}
+function renderHS(){
+  const res = searchHS($('#hsQ').value), LIMIT = 150;
+  let html = '', g = '';
+  res.slice(0,LIMIT).forEach(([x,sib])=>{
+    const six = x[0].slice(0,4)+'.'+x[0].slice(4,6);
+    if (six!==g){ g = six; html += `<div class="hs-group">${six} · ${esc(HSK.cats[x[3]]||'')}</div>`; }
+    html += `<div class="hs-row${sib?' sib':''}" data-code="${x[0]}"><span class="c">${fmtHS(x[0])}</span><span>${esc(x[1])}</span><span class="en">${esc(x[2])}</span></div>`;
+  });
+  $('#hsList').innerHTML = html || `<p class="hint" style="padding:8px">${$('#hsQ').value.trim()?'결과 없음 — 더 일반적인 품명(예: 플라스틱 주방용품, vacuum flask)이나 코드 앞 4자리로 찾아보세요.':''}</p>`;
+  if (res.length>LIMIT) $('#hsList').innerHTML += `<p class="hint" style="padding:8px">${res.length}건 중 ${LIMIT}건 표시 — 검색어를 더 구체적으로 입력하세요.</p>`;
+}
+async function openHS(i){
+  hsTarget = i; const dlg = $('#hsDlg');
+  $('#hsQ').value = S.items[i].hs ? S.items[i].hs.replace(/\D/g,'').slice(0,4) : '';
+  dlg.showModal(); $('#hsQ').focus();
+  try{
+    $('#hsMeta').textContent = '데이터 불러오는 중…';
+    await loadHSK();
+    $('#hsMeta').textContent = `출처: ${HSK.source} · ${HSK.count.toLocaleString()}개 코드 · 적용 종료 ${HSK.valid_until} (2027년 HS 개정 전 기준) · 참고용 후보이며 최종 분류는 관세사·품목분류 사전심사로 확인하세요. 흐린 줄은 같은 소호(6단위)의 다른 항목입니다.`;
+    renderHS();
+  }catch(e){
+    $('#hsMeta').textContent = 'HS 데이터를 불러오지 못했습니다. 배포된 주소(또는 로컬 웹서버)에서 열어야 동작합니다.';
+  }
+}
+$('#hsQ').addEventListener('input', e=>{ e.stopPropagation(); clearTimeout(hsTimer); hsTimer = setTimeout(()=>HSK && renderHS(), 150); });
+$('#hsList').addEventListener('click', e=>{
+  const row = e.target.closest('[data-code]'); if (!row || hsTarget<0) return;
+  S.items[hsTarget].hs = fmtHS(row.dataset.code);
+  save(); renderItems(); render(); $('#hsDlg').close();
+});
+$('#hsClose').onclick = ()=> $('#hsDlg').close();
 
 /* ---------- CSV / XLSX import ---------- */
 const COLS = [
@@ -554,8 +635,8 @@ $('#btnTplX').onclick = async e=>{
 
 /* ---------- exchange rate API ---------- */
 const RATE_SOURCES = [
-  // 1순위: GitHub Actions가 API 키(Secret)로 매일 갱신하는 파일 — 키는 페이지에 노출되지 않음
-  {name:'ExchangeRate-API (자동 갱신)', url:'../data/usd-krw.json?t='+Date.now(),
+  // 1순위: Vercel 서버 함수(/api/rate) — API 키는 서버 환경변수에만 있음
+  {name:'ExchangeRate-API', url:'/api/rate',
    pick:j=>({rate:j.rate, date:j.date})},
   {name:'ExchangeRate-API (open.er-api.com)', url:'https://open.er-api.com/v6/latest/USD',
    pick:j=>{ if(j.result!=='success') throw 0; return {rate:j.rates.KRW, date:new Date(j.time_last_update_unix*1000).toISOString().slice(0,10)}; }},

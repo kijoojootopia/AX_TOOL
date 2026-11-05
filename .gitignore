@@ -1,3 +1,6 @@
 .env
 .env.*
 !.env.example
+.vercel
+# 원본 데이터 파일(변환 결과 data/hsk.json만 커밋)
+*.xlsx
