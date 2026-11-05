@@ -256,7 +256,7 @@ const DESC = {
   CFR:'+ 도착항까지 해상운임',
   CIF:'+ 적하보험료 (CIF×110% 부보)'
 };
-const today = () => new Date().toISOString().slice(0,10);
+const today = () => { const t = new Date(); return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0'); }; // 로컬(한국) 날짜
 const blankItem = () => ({name:'',hs:'',qty:'',unit:'pcs',cost:'',moq:'',nego:''});
 
 function defaults(){
@@ -273,7 +273,7 @@ function defaults(){
 }
 function sample(){
   const d = today();
-  const fv = new Date(Date.now()+14*864e5).toISOString().slice(0,10);
+  const fv = addDays(d, 14);
   return Object.assign(defaults(), {
     items:[
       {name:'Stainless Tumbler 500ml', hs:'9617.00', qty:3000, unit:'pcs', cost:4200, moq:1000, nego:''},

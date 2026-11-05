@@ -5,6 +5,7 @@
 | 도구 | 폴더 | 설명 |
 |---|---|---|
 | 수출 견적서 계산기 | [quotation-builder](quotation-builder/) | 인코텀즈별 단가 비교 · 협상가 마진 확인 · 영문 견적서 출력 · CSV/엑셀 품목 불러오기 · 환율 API · 관세청 HS Code 검색 |
+| 바이어 관리 보드 | [buyer-pipeline](buyer-pipeline/) | 단계별 칸반 · 오늘 할 일(팔로업) 자동 정리 · 가중 파이프라인 · 현지 시각 · CSV 내보내기/불러오기 |
 
 ## 배포 (Vercel)
 - 정적 파일 + 서버 함수 `api/rate.js`(환율). 프레임워크 설정 없음(Other).

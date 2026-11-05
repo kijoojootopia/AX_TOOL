@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>바이어 관리 보드</title>
+<style>
+:root{
+  --bg:#f5f6f8; --card:#fff; --ink:#1b1f24; --muted:#5f6b7a; --line:#dde2e8;
+  --brand:#1f4e79; --brand-soft:#e8f0f8; --bad:#c62828; --bad-soft:#fdecea;
+  --warn:#b45309; --warn-soft:#fff1e0; --ok:#2e7d32; --ok-soft:#e8f5e9;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 "Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif}
+.wrap{max-width:1400px;margin:0 auto;padding:20px 16px 40px}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px}
+h1{font-size:20px;margin:0}
+h2{font-size:15px;margin:0 0 10px}
+.sub{color:var(--muted);font-size:13px;margin:2px 0 0}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+button{font:inherit;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:7px;padding:7px 12px;cursor:pointer}
+button:hover{border-color:var(--brand)}
+button.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+button.danger{color:var(--bad);border-color:#f3b7b2}
+button.sm{padding:3px 8px;font-size:12px}
+input,select,textarea{font:inherit;width:100%;border:1px solid var(--line);border-radius:6px;padding:6px 8px;background:#fff;color:var(--ink)}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-soft);border-color:var(--brand)}
+label{display:block;font-size:12px;color:var(--muted);margin-bottom:3px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px}
+.hint{font-size:12px;color:var(--muted);margin:6px 0 0}
+.sample-banner{display:none;background:#fff4d6;color:#8a5a00;border:1px solid #f0d58a;border-radius:8px;padding:8px 12px;margin-bottom:14px;font-weight:600}
+.sample .sample-banner{display:block}
+
+/* today */
+.todo-group{margin-top:8px}
+.todo-group h3{font-size:12px;margin:10px 0 4px;color:var(--muted)}
+.todo{display:grid;grid-template-columns:auto 1fr auto;gap:4px 12px;align-items:center;padding:8px 10px;border-radius:8px;margin-bottom:6px;border:1px solid var(--line)}
+.todo.over{background:var(--bad-soft);border-color:#f3b7b2}
+.todo.today{background:var(--warn-soft);border-color:#f5c99a}
+.todo .d{font-weight:700;font-variant-numeric:tabular-nums;min-width:56px}
+.todo.over .d{color:var(--bad)} .todo.today .d{color:var(--warn)}
+.todo .who b{margin-right:6px}
+.todo .who .m{color:var(--muted);font-size:12px}
+.empty{color:var(--muted);font-size:13px;padding:6px 0}
+
+/* summary */
+.stats{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
+.stat{border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.stat .k{font-size:12px;color:var(--muted)}
+.stat .v{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums}
+.stat.hl{background:var(--brand-soft);border-color:#c5d7ea}
+.filters{display:grid;gap:10px;grid-template-columns:1fr 1fr auto;align-items:end;margin-top:12px}
+.chk{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink);white-space:nowrap;margin:0}
+.chk input{width:auto}
+
+/* board */
+.board{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(230px,1fr);gap:10px;overflow-x:auto;padding-bottom:6px}
+.col{background:#eceff3;border-radius:10px;padding:8px;min-height:160px;display:flex;flex-direction:column;gap:8px}
+.col.over{outline:2px dashed var(--brand);background:var(--brand-soft)}
+.col-head{display:flex;justify-content:space-between;align-items:baseline;padding:2px 4px}
+.col-head b{font-size:13px}
+.col-head span{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.col.lost{background:#f1f1f1}
+.bc{background:#fff;border:1px solid var(--line);border-radius:8px;padding:9px 10px;cursor:grab}
+.bc.dragging{opacity:.4}
+.bc .t{display:flex;justify-content:space-between;gap:6px;align-items:start}
+.bc .t b{font-size:13.5px;line-height:1.3}
+.bc .amt{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.bc .meta{font-size:12px;color:var(--muted);margin-top:3px}
+.bc .tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.tag{font-size:11px;padding:1px 6px;border-radius:4px;background:#f1f3f5;color:var(--muted);white-space:nowrap}
+.tag.over{background:var(--bad-soft);color:var(--bad);font-weight:600}
+.tag.today{background:var(--warn-soft);color:var(--warn);font-weight:600}
+.tag.work{background:var(--ok-soft);color:var(--ok)}
+.tag.stale{background:#ede7f6;color:#5e35b1}
+.bc .acts{display:flex;gap:4px;margin-top:8px}
+.bc .acts button{flex:1}
+.memo{font-size:12px;margin-top:4px;color:#333;white-space:pre-line;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+a{color:var(--brand)}
+
+/* dialog */
+dialog{width:min(620px,calc(100vw - 32px));border:1px solid var(--line);border-radius:10px;padding:18px;color:var(--ink)}
+dialog::backdrop{background:rgba(0,0,0,.35)}
+.form{display:grid;gap:10px 12px;grid-template-columns:1fr 1fr}
+.form .full{grid-column:1/-1}
+.dlg-foot{display:flex;justify-content:space-between;gap:8px;margin-top:14px}
+details{border:1px solid var(--line);border-radius:10px;background:var(--card);margin-bottom:14px}
+summary{cursor:pointer;padding:12px 16px;font-weight:600}
+details .body{padding:0 16px 14px;font-size:13px}
+details table{border-collapse:collapse;width:100%}
+details th,details td{border-bottom:1px solid var(--line);padding:5px 6px;text-align:left;vertical-align:top}
+details th{font-size:12px;color:var(--muted)}
+.tbl{overflow-x:auto}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#1b1f24;color:#fff;padding:9px 14px;border-radius:8px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s;max-width:calc(100vw - 32px)}
+#toast.on{opacity:1}
+footer{text-align:center;color:var(--muted);font-size:11px;margin-top:24px}
+
+@media (max-width:767px){
+  .board{grid-auto-flow:row;grid-auto-columns:auto;overflow:visible}
+  .col{min-height:auto}
+  .filters{grid-template-columns:1fr}
+  .form{grid-template-columns:1fr}
+  .todo{grid-template-columns:auto 1fr}
+  .todo .btns{grid-column:1/-1}
+}
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <header>
+    <div>
+      <h1>바이어 관리 보드</h1>
+      <p class="sub">단계별 진행 현황과 오늘 연락할 바이어를 한눈에</p>
+    </div>
+    <div class="btns">
+      <button class="primary" id="btnNew">+ 바이어 추가</button>
+      <button id="btnSample">예시 데이터 넣기</button>
+      <button id="btnExport">CSV 내보내기</button>
+      <button id="btnImport">CSV 불러오기</button>
+      <button id="btnReset">초기화</button>
+      <input type="file" id="fileIn" accept=".csv,.txt" hidden>
+    </div>
+  </header>
+
+  <div class="sample-banner">⚠ 예시 데이터입니다 — 회사·담당자·금액·날짜 모두 가상입니다.</div>
+
+  <details>
+    <summary>도움말 — 단계 뜻과 팔로업 규칙</summary>
+    <div class="body">
+      <div class="tbl"><table>
+        <tr><th>단계</th><th>뜻</th><th>기본 팔로업 간격</th><th>성사 확률(가중 합계용)</th></tr>
+        <tbody id="helpRows"></tbody>
+      </table></div>
+      <p class="hint"><b>연락함</b> 버튼을 누르면 마지막 연락일이 오늘로, 다음 연락일이 위 간격(영업일, 주말 제외)만큼 뒤로 자동 설정됩니다. 단계를 옮길 때 다음 연락일이 비었거나 지났으면 같은 규칙으로 채웁니다. 날짜는 수정 화면에서 언제든 바꿀 수 있습니다.</p>
+      <p class="hint"><b>가중 합계</b> = 진행 중 카드의 예상 거래액 × 단계별 성사 확률. "지금 파이프라인이 실제로 얼마쯤 될지"를 보는 숫자입니다. 확률은 일반적인 예시값이니 회사 경험치로 바꿔 쓰세요.</p>
+      <p class="hint"><b>현지 시각</b>은 국가의 대표 시간대 기준입니다(미국=동부, 중국=베이징 등). 평일 09–18시면 초록색 "업무시간"으로 표시됩니다.</p>
+      <p class="hint"><b>데이터 저장</b>: 이 브라우저에만 저장됩니다. 다른 PC·브라우저에서는 보이지 않고, 방문 기록을 지우면 사라지니 주기적으로 CSV로 백업하세요.</p>
+    </div>
+  </details>
+
+  <section class="card">
+    <h2>오늘 할 일</h2>
+    <div id="todo"></div>
+  </section>
+
+  <section class="card">
+    <h2>요약</h2>
+    <div class="stats" id="stats"></div>
+    <div class="filters">
+      <div><label>국가</label><select id="fCountry"></select></div>
+      <div><label>검색 (회사명·담당자·품목)</label><input id="fQ" placeholder="검색어"></div>
+      <label class="chk"><input type="checkbox" id="fLost"> 보류·실주 칸 보기</label>
+    </div>
+  </section>
+
+  <div class="board" id="board"></div>
+
+  <footer>연습용 도구 • 실제 고객 정보는 회사 보안 규정에 맞게 관리하세요</footer>
+</div>
+
+<dialog id="dlg">
+  <form method="dialog" id="form">
+    <h2 id="dlgTitle">바이어 추가</h2>
+    <div class="form">
+      <div class="full"><label>회사명 *</label><input name="company" required></div>
+      <div><label>국가</label><input name="country" list="countryList" placeholder="예: 미국"></div>
+      <div><label>단계</label><select name="stage" id="stageSel"></select></div>
+      <div><label>담당자</label><input name="contact"></div>
+      <div><label>이메일</label><input name="email" type="email"></div>
+      <div><label>관심 품목</label><input name="product"></div>
+      <div><label>예상 거래액 (USD)</label><input name="amount" type="number" min="0" step="100"></div>
+      <div><label>마지막 연락일</label><input name="last" type="date"></div>
+      <div><label>다음 연락일</label><input name="next" type="date"></div>
+      <div class="full"><label>메모</label><textarea name="memo" rows="3"></textarea></div>
+    </div>
+    <div class="dlg-foot">
+      <button type="button" class="danger" id="btnDel">삭제</button>
+      <div class="btns">
+        <button type="button" id="btnCancel">취소</button>
+        <button type="submit" class="primary" value="save">저장</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+<datalist id="countryList"></datalist>
+<div id="toast"></div>
+
+<script>
+(() => {
+const KEY = 'buyer-pipeline-v1';
+const STAGES = [
+  {k:'inquiry',     n:'Inquiry',     d:'문의 접수. 바이어가 처음 연락해 온 단계',             gap:2,  p:.10},
+  {k:'sample',      n:'Sample',      d:'샘플 발송·테스트 중',                               gap:7,  p:.20},
+  {k:'quotation',   n:'Quotation',   d:'견적서 발송 후 회신 대기',                           gap:3,  p:.30},
+  {k:'negotiation', n:'Negotiation', d:'가격·결제·납기 조건 협상 중',                         gap:3,  p:.50},
+  {k:'po',          n:'PO',          d:'Purchase Order(발주서) 접수. 생산·선적 준비',        gap:7,  p:.90},
+  {k:'shipped',     n:'Shipped',     d:'선적 완료. 도착·대금 회수·재주문 확인',               gap:10, p:1},
+  {k:'lost',        n:'Hold / Lost', d:'보류 또는 실주. 지우지 않고 남겨 두었다가 재접촉',     gap:60, p:0}
+];
+const SI = Object.fromEntries(STAGES.map((s,i)=>[s.k,i]));
+const ACTIVE = ['inquiry','sample','quotation','negotiation','po'];
+const TZ = {
+  '미국':'America/New_York','캐나다':'America/Toronto','멕시코':'America/Mexico_City','브라질':'America/Sao_Paulo','칠레':'America/Santiago',
+  '영국':'Europe/London','독일':'Europe/Berlin','프랑스':'Europe/Paris','이탈리아':'Europe/Rome','스페인':'Europe/Madrid','네덜란드':'Europe/Amsterdam','폴란드':'Europe/Warsaw','튀르키예':'Europe/Istanbul',
+  'UAE':'Asia/Dubai','사우디아라비아':'Asia/Riyadh','인도':'Asia/Kolkata',
+  '베트남':'Asia/Ho_Chi_Minh','태국':'Asia/Bangkok','인도네시아':'Asia/Jakarta','말레이시아':'Asia/Kuala_Lumpur','싱가포르':'Asia/Singapore','필리핀':'Asia/Manila',
+  '중국':'Asia/Shanghai','대만':'Asia/Taipei','홍콩':'Asia/Hong_Kong','일본':'Asia/Tokyo','호주':'Australia/Sydney','뉴질랜드':'Pacific/Auckland'
+};
+
+/* ---------- date utils (local time) ---------- */
+const ymd = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const pd = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y,m-1,d); };
+const today = () => ymd(new Date());
+const addDays = (s,n) => { const d = pd(s); d.setDate(d.getDate()+n); return ymd(d); };
+const addBiz = (s,n) => { const d = pd(s); let k = 0; while (k<n){ d.setDate(d.getDate()+1); if (d.getDay()%6) k++; } return ymd(d); };
+const diff = (a,b) => Math.round((pd(a)-pd(b))/864e5);
+const md = s => s ? s.slice(5).replace('-','/') : '—';
+
+/* ---------- state ---------- */
+let S = {cards:[], sample:false, showLost:false};
+try { S = Object.assign(S, JSON.parse(localStorage.getItem(KEY)||'null')||{}); } catch(e){}
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){} };
+const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const $ = s => document.querySelector(s);
+const esc = s => String(s??'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const usd = n => '$'+Math.round(+n||0).toLocaleString('en-US');
+const toast = msg => { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove('on'), 2600); };
+
+function localTime(country){
+  const tz = TZ[(country||'').trim()]; if (!tz) return null;
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:tz,hour:'2-digit',minute:'2-digit',weekday:'short',hourCycle:'h23'}).formatToParts(new Date()).map(x=>[x.type,x.value]));
+  const h = +p.hour, wk = !['Sat','Sun'].includes(p.weekday);
+  return {txt:`현지 ${p.hour}:${p.minute}`, work: wk && h>=9 && h<18};
+}
+
+/* ---------- actions ---------- */
+function moveStage(id, stage){
+  const c = S.cards.find(x=>x.id===id); if (!c || c.stage===stage) return;
+  c.stage = stage; c.stageSince = today();
+  let msg = `${c.company} → ${STAGES[SI[stage]].n}`;
+  if (!c.next || c.next < today()){
+    c.next = addBiz(today(), STAGES[SI[stage]].gap);
+    msg += ` · 다음 연락일 ${md(c.next)}로 설정`;
+  }
+  save(); render(); toast(msg);
+}
+function contacted(id){
+  const c = S.cards.find(x=>x.id===id); if (!c) return;
+  c.last = today(); c.next = addBiz(today(), STAGES[SI[c.stage]].gap);
+  save(); render(); toast(`${c.company} 연락 기록 · 다음 연락일 ${md(c.next)}`);
+}
+
+/* ---------- render ---------- */
+function filtered(){
+  const cty = $('#fCountry').value, q = $('#fQ').value.trim().toLowerCase();
+  return S.cards.filter(c => (!cty || c.country===cty) &&
+    (!q || [c.company,c.contact,c.product].join(' ').toLowerCase().includes(q)));
+}
+function dueTag(c){
+  if (!c.next) return '';
+  const d = diff(c.next, today());
+  if (d<0) return `<span class="tag over">${-d}일 지남</span>`;
+  if (d===0) return `<span class="tag today">오늘 연락</span>`;
+  return `<span class="tag">다음 ${md(c.next)}</span>`;
+}
+function cardHTML(c){
+  const i = SI[c.stage], lt = localTime(c.country);
+  const stale = c.last && diff(today(), c.last) >= 14 && c.stage!=='lost';
+  const inStage = c.stageSince ? diff(today(), c.stageSince) : null;
+  return `<div class="bc" draggable="true" data-id="${c.id}">
+    <div class="t"><b>${esc(c.company)}</b><span class="amt">${c.amount?usd(c.amount):''}</span></div>
+    <div class="meta">${esc([c.country,c.contact].filter(Boolean).join(' · '))}${c.email?` · <a href="mailto:${esc(c.email)}">메일</a>`:''}</div>
+    ${c.product?`<div class="meta">${esc(c.product)}</div>`:''}
+    ${c.memo?`<div class="memo">${esc(c.memo)}</div>`:''}
+    <div class="tags">${dueTag(c)}
+      ${lt?`<span class="tag ${lt.work?'work':''}">${lt.txt}${lt.work?' 업무시간':''}</span>`:''}
+      ${stale?`<span class="tag stale">연락 ${diff(today(),c.last)}일 없음</span>`:''}
+      ${inStage!==null?`<span class="tag">이 단계 ${inStage}일째</span>`:''}
+    </div>
+    <div class="acts">
+      <button class="sm" data-act="prev" ${i===0?'disabled':''} title="이전 단계" aria-label="이전 단계">◀</button>
+      <button class="sm" data-act="done">연락함</button>
+      <button class="sm" data-act="edit">수정</button>
+      <button class="sm" data-act="next" ${i>=STAGES.length-2?'disabled':''} title="다음 단계" aria-label="다음 단계">▶</button>
+    </div>
+  </div>`;
+}
+function render(){
+  document.getElementById('app').classList.toggle('sample', !!S.sample);
+  // country filter options
+  const cur = $('#fCountry').value;
+  const countries = [...new Set(S.cards.map(c=>c.country).filter(Boolean))].sort();
+  $('#fCountry').innerHTML = `<option value="">전체 국가</option>` + countries.map(c=>`<option${c===cur?' selected':''}>${esc(c)}</option>`).join('');
+  $('#countryList').innerHTML = [...new Set([...Object.keys(TZ),...countries])].map(c=>`<option value="${esc(c)}">`).join('');
+  $('#fLost').checked = !!S.showLost;
+
+  const list = filtered(), t = today();
+
+  // today
+  const withNext = list.filter(c=>c.next).sort((a,b)=>a.next.localeCompare(b.next));
+  const over = withNext.filter(c=>c.next<t), tod = withNext.filter(c=>c.next===t), soon = withNext.filter(c=>c.next>t && diff(c.next,t)<=7);
+  const row = (c,cls) => {
+    const d = diff(c.next,t), lt = localTime(c.country);
+    return `<div class="todo ${cls}" data-id="${c.id}">
+      <span class="d">${d<0?`D+${-d}`:d===0?'오늘':md(c.next)}</span>
+      <span class="who"><b>${esc(c.company)}</b><span class="m">${esc(STAGES[SI[c.stage]].n)}${c.country?' · '+esc(c.country):''}${lt?' · '+lt.txt+(lt.work?' (업무시간)':''):''}${c.memo?' · '+esc(c.memo.split('\n')[0].slice(0,40)):''}</span></span>
+      <span class="btns"><button class="sm" data-act="done">연락함</button><button class="sm" data-act="edit">수정</button></span>
+    </div>`;
+  };
+  const grp = (title, arr, cls) => arr.length ? `<div class="todo-group"><h3>${title} (${arr.length})</h3>${arr.map(c=>row(c,cls)).join('')}</div>` : '';
+  $('#todo').innerHTML = (over.length||tod.length||soon.length)
+    ? grp('지난 팔로업',over,'over') + grp('오늘',tod,'today') + grp('7일 이내',soon,'')
+    : `<div class="empty">${S.cards.length?'오늘 연락할 바이어가 없습니다.':'바이어를 추가하거나 "예시 데이터 넣기"를 눌러 보세요.'}</div>`;
+
+  // stats
+  const sum = arr => arr.reduce((s,c)=>s+(+c.amount||0),0);
+  const act = list.filter(c=>ACTIVE.includes(c.stage));
+  const weighted = act.reduce((s,c)=>s+(+c.amount||0)*STAGES[SI[c.stage]].p,0);
+  let h = `<div class="stat hl"><div class="k">진행 중 합계 (${act.length}건)</div><div class="v">${usd(sum(act))}</div></div>
+           <div class="stat hl"><div class="k">가중 합계</div><div class="v">${usd(weighted)}</div></div>`;
+  STAGES.forEach(s=>{
+    if (s.k==='lost' && !S.showLost) return;
+    const a = list.filter(c=>c.stage===s.k);
+    h += `<div class="stat"><div class="k">${s.n} · ${a.length}건</div><div class="v">${usd(sum(a))}</div></div>`;
+  });
+  $('#stats').innerHTML = h;
+
+  // board
+  $('#board').innerHTML = STAGES.filter(s=>s.k!=='lost'||S.showLost).map(s=>{
+    const a = list.filter(c=>c.stage===s.k).sort((x,y)=>(x.next||'9').localeCompare(y.next||'9'));
+    return `<div class="col ${s.k==='lost'?'lost':''}" data-stage="${s.k}">
+      <div class="col-head"><b>${s.n}</b><span>${a.length}건 · ${usd(sum(a))}</span></div>
+      ${a.map(cardHTML).join('')}
+    </div>`;
+  }).join('');
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click', e=>{
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const id = b.closest('[data-id]').dataset.id, c = S.cards.find(x=>x.id===id); if (!c) return;
+  const i = SI[c.stage];
+  if (b.dataset.act==='prev') moveStage(id, STAGES[Math.max(0,i-1)].k);
+  if (b.dataset.act==='next') moveStage(id, STAGES[Math.min(STAGES.length-2,i+1)].k);
+  if (b.dataset.act==='done') contacted(id);
+  if (b.dataset.act==='edit') openForm(c);
+});
+// drag & drop (desktop)
+let dragId = null;
+$('#board').addEventListener('dragstart', e=>{ const el = e.target.closest('.bc'); if(!el) return; dragId = el.dataset.id; el.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; });
+$('#board').addEventListener('dragend', e=>{ e.target.closest?.('.bc')?.classList.remove('dragging'); document.querySelectorAll('.col.over').forEach(x=>x.classList.remove('over')); });
+$('#board').addEventListener('dragover', e=>{ const col = e.target.closest('.col'); if(!col||!dragId) return; e.preventDefault(); document.querySelectorAll('.col.over').forEach(x=>x!==col&&x.classList.remove('over')); col.classList.add('over'); });
+$('#board').addEventListener('drop', e=>{ const col = e.target.closest('.col'); if(!col||!dragId) return; e.preventDefault(); const id = dragId; dragId = null; moveStage(id, col.dataset.stage); });
+
+['#fCountry','#fQ'].forEach(s=>$(s).addEventListener('input', render));
+$('#fLost').onchange = e=>{ S.showLost = e.target.checked; save(); render(); };
+
+/* ---------- form ---------- */
+let editing = null;
+$('#stageSel').innerHTML = STAGES.map(s=>`<option value="${s.k}">${s.n}</option>`).join('');
+function openForm(c){
+  editing = c || null;
+  const f = $('#form');
+  $('#dlgTitle').textContent = c ? '바이어 수정' : '바이어 추가';
+  const v = c || {stage:'inquiry', last:today(), next:addBiz(today(),STAGES[0].gap)};
+  ['company','country','contact','email','product','amount','stage','last','next','memo'].forEach(k=> f.elements[k].value = v[k] ?? '');
+  $('#btnDel').style.visibility = c ? 'visible' : 'hidden';
+  $('#dlg').showModal(); f.elements.company.focus();
+}
+$('#btnNew').onclick = ()=> openForm(null);
+$('#btnCancel').onclick = ()=> $('#dlg').close();
+$('#form').addEventListener('submit', e=>{
+  const f = e.target, v = {};
+  ['company','country','contact','email','product','amount','stage','last','next','memo'].forEach(k=> v[k] = f.elements[k].value.trim());
+  if (!v.company){ e.preventDefault(); return; }
+  if (editing){
+    if (editing.stage !== v.stage) v.stageSince = today();
+    Object.assign(editing, v);
+  } else S.cards.push(Object.assign({id:uid(), stageSince:today(), created:today()}, v));
+  save(); render(); toast('저장했습니다');
+});
+$('#btnDel').onclick = ()=>{
+  if (!editing || !confirm(`"${editing.company}" 카드를 삭제할까요? 되돌릴 수 없습니다.`)) return;
+  S.cards = S.cards.filter(x=>x!==editing); save(); render(); $('#dlg').close(); toast('삭제했습니다');
+};
+
+/* ---------- CSV ---------- */
+const COLS = [
+  ['company','회사명'],['country','국가'],['contact','담당자'],['email','이메일'],['product','관심 품목'],
+  ['amount','예상 거래액(USD)'],['stage','단계'],['stageSince','단계 진입일'],['last','마지막 연락일'],['next','다음 연락일'],['memo','메모']
+];
+const csvCell = v => { v = String(v??''); return /[",\n\r]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; };
+$('#btnExport').onclick = ()=>{
+  if (!S.cards.length){ toast('내보낼 데이터가 없습니다'); return; }
+  const lines = [COLS.map(c=>c[1]).join(',')].concat(S.cards.map(c=>COLS.map(([k])=>csvCell(k==='stage'?STAGES[SI[c.stage]].n:c[k])).join(',')));
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}));
+  a.download = `buyers-${today()}.csv`; a.click(); URL.revokeObjectURL(a.href);
+};
+function parseCSV(t){
+  t = t.replace(/^﻿/,'');
+  const rows=[]; let row=[], f='', q=false;
+  for (let i=0;i<t.length;i++){
+    const c=t[i];
+    if (q){ if (c==='"'){ if (t[i+1]==='"'){ f+='"'; i++; } else q=false; } else f+=c; }
+    else if (c==='"') q=true;
+    else if (c===','){ row.push(f); f=''; }
+    else if (c==='\n'){ row.push(f); rows.push(row); row=[]; f=''; }
+    else if (c!=='\r') f+=c;
+  }
+  if (f || row.length){ row.push(f); rows.push(row); }
+  return rows.filter(r=>r.some(x=>x.trim()));
+}
+const decode = buf => { try { return new TextDecoder('utf-8',{fatal:true}).decode(buf); } catch(e){ return new TextDecoder('euc-kr').decode(buf); } };
+const normDate = v => { v = String(v||'').trim().replace(/[./]/g,'-'); const m = v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/); return m ? `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}` : ''; };
+const stageOf = v => { v = String(v||'').trim().toLowerCase(); const s = STAGES.find(s=>s.k===v || s.n.toLowerCase()===v || s.n.toLowerCase().startsWith(v) && v.length>=2); return s ? s.k : 'inquiry'; };
+$('#btnImport').onclick = ()=> $('#fileIn').click();
+$('#fileIn').onchange = async e=>{
+  const file = e.target.files[0]; e.target.value=''; if (!file) return;
+  try{
+    const rows = parseCSV(decode(await file.arrayBuffer()));
+    const head = rows[0].map(h=>h.replace(/\s/g,''));
+    const idx = Object.fromEntries(COLS.map(([k,n])=>[k, head.indexOf(n.replace(/\s/g,''))]));
+    if (idx.company<0) throw new Error('"회사명" 열이 없습니다. CSV 내보내기 파일의 열 이름을 사용하세요.');
+    const cards = rows.slice(1).map(r=>{
+      const g = k => idx[k]>=0 ? (r[idx[k]]||'').trim() : '';
+      return {id:uid(), company:g('company'), country:g('country'), contact:g('contact'), email:g('email'), product:g('product'),
+        amount:String(g('amount')).replace(/[^\d.]/g,''), stage:stageOf(g('stage')), stageSince:normDate(g('stageSince'))||today(),
+        last:normDate(g('last')), next:normDate(g('next')), memo:g('memo'), created:today()};
+    }).filter(c=>c.company);
+    if (!cards.length) throw new Error('불러올 행이 없습니다.');
+    if (S.cards.length && confirm(`기존 ${S.cards.length}건을 지우고 ${cards.length}건으로 바꿀까요?\n취소하면 기존 데이터 뒤에 추가합니다.`)) S.cards = cards;
+    else S.cards = S.cards.concat(cards);
+    S.sample = false; save(); render(); toast(`${cards.length}건을 불러왔습니다`);
+  }catch(err){ alert(err.message || 'CSV를 읽지 못했습니다.'); }
+};
+
+/* ---------- sample / reset ---------- */
+$('#btnSample').onclick = ()=>{
+  if (S.cards.length && !confirm('지금 데이터를 지우고 예시 데이터로 바꿀까요?')) return;
+  const t = today(), D = n => addDays(t,n);
+  const mk = (company,country,contact,email,product,amount,stage,since,last,next,memo) =>
+    ({id:uid(),company:company+' (가상)',country,contact,email,product,amount:String(amount),stage,stageSince:D(since),last:D(last),next:next===null?'':D(next),memo,created:t});
+  S.cards = [
+    mk('Sunrise Home Goods','미국','Emily Carter','emily@example.com','Stainless tumbler',48000,'negotiation',-12,-6,-3,'Target price CIF LA $4.10 요청. 원가 재검토 후 회신 약속'),
+    mk('Saigon Kitchen Co.','베트남','Nguyen Van An','an@example.com','Silicone lid',15000,'quotation',-5,-4,0,'견적 발송 완료. 결제조건 T/T 30/70 문의'),
+    mk('Rheinland Handel GmbH','독일','Markus Weber','weber@example.com','Gift set',32000,'sample',-15,-15,-1,'샘플 DHL 도착 확인. 품질 피드백 대기'),
+    mk('Gulf Star Trading LLC','UAE','Ahmed Al Mansoori','ahmed@example.com','Tumbler (custom logo)',60000,'inquiry',-1,-1,1,'두바이 전시회 명함. 카탈로그·MOQ 요청'),
+    mk('Pacific Living Inc.','캐나다','Olivia Brown','olivia@example.com','Vacuum lunch box',22000,'po',-20,-3,4,'PO 접수, 선금 30% 입금 확인. 생산 중'),
+    mk('Bangkok Retail Group','태국','Somchai P.','somchai@example.com','Kitchenware set',18000,'shipped',-30,-10,5,'ETA 다음 주. 도착 후 재주문 의향 확인'),
+    mk('Nippon Select','일본','Sato Yuki','sato@example.com','Silicone lid',9000,'inquiry',-2,-2,-1,'일본어 카탈로그 요청'),
+    mk('Euro Outdoor BV','네덜란드','Lars de Vries','lars@example.com','Camping tumbler',25000,'lost',-40,-25,40,'가격 차이로 실주. 다음 시즌(2분기) 재접촉')
+  ];
+  S.sample = true; save(); render(); toast('예시 데이터 8건을 넣었습니다');
+};
+$('#btnReset').onclick = ()=>{
+  if (!confirm('모든 카드를 삭제할까요? 먼저 CSV로 백업하는 것을 권장합니다.')) return;
+  S.cards = []; S.sample = false; save(); render();
+};
+
+$('#helpRows').innerHTML = STAGES.map(s=>`<tr><td><b>${s.n}</b></td><td>${s.d}</td><td>${s.gap} 영업일</td><td>${s.k==='lost'?'합계 제외':Math.round(s.p*100)+'%'}</td></tr>`).join('');
+render();
+setInterval(render, 60000); // 현지 시각·날짜 갱신
+})();
+</script>
+</body>
+</html>
