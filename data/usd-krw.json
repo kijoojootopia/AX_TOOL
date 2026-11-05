@@ -1,8 +1,0 @@
-{
-  "base": "USD",
-  "quote": "KRW",
-  "rate": 1340.1686,
-  "date": "2026-11-05",
-  "source": "ExchangeRate-API",
-  "fetched_at": "2026-11-05T06:20:53.888Z"
-}

@@ -1,4 +1,4 @@
-"""관세청 HS부호 엑셀(공공데이터포털) → data/hsk.json
+"""관세청 HS부호 엑셀(공공데이터포털) → quotation-builder/data/hsk.json
 
 사용법:  python scripts/build_hsk.py 관세청_HS부호_20260101.xlsx
 매년 1월 새 파일을 받아 다시 실행하세요.
@@ -8,7 +8,7 @@ from pathlib import Path
 import openpyxl
 
 src = Path(sys.argv[1] if len(sys.argv) > 1 else "관세청_HS부호_20260101.xlsx")
-out = Path(__file__).resolve().parent.parent / "data" / "hsk.json"
+out = Path(__file__).resolve().parent.parent / "quotation-builder" / "data" / "hsk.json"
 
 ws = openpyxl.load_workbook(src, read_only=True).worksheets[0]
 rows = list(ws.iter_rows(values_only=True))

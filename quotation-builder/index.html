@@ -477,7 +477,7 @@ let HSK = null, hsTarget = -1, hsTimer;
 const fmtHS = c => c.length===10 ? `${c.slice(0,4)}.${c.slice(4,6)}-${c.slice(6)}` : c;
 async function loadHSK(){
   if (HSK) return HSK;
-  const r = await fetch('../data/hsk.json');
+  const r = await fetch('data/hsk.json');
   if (!r.ok) throw new Error();
   HSK = await r.json();
   HSK.rows.forEach(x => x.push((x[0]+' '+x[1]+' '+x[2]+' '+(HSK.cats[x[3]]||'')).toLowerCase()));
@@ -636,7 +636,7 @@ $('#btnTplX').onclick = async e=>{
 /* ---------- exchange rate API ---------- */
 const RATE_SOURCES = [
   // 1순위: Vercel 서버 함수(/api/rate) — API 키는 서버 환경변수에만 있음
-  {name:'ExchangeRate-API', url:'/api/rate',
+  {name:'ExchangeRate-API', url:'api/rate',
    pick:j=>({rate:j.rate, date:j.date})},
   {name:'ExchangeRate-API (open.er-api.com)', url:'https://open.er-api.com/v6/latest/USD',
    pick:j=>{ if(j.result!=='success') throw 0; return {rate:j.rates.KRW, date:new Date(j.time_last_update_unix*1000).toISOString().slice(0,10)}; }},
