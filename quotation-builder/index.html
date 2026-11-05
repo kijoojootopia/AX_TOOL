@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>수출 견적서 계산기</title>
+<style>
+:root{
+  --bg:#f5f6f8; --card:#fff; --ink:#1b1f24; --muted:#5f6b7a; --line:#dde2e8;
+  --brand:#1f4e79; --brand-soft:#e8f0f8; --bad:#c62828; --bad-soft:#fdecea;
+  --warn:#8a5a00; --warn-soft:#fff4d6; --ok:#2e7d32;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 "Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif}
+.wrap{max-width:1120px;margin:0 auto;padding:20px 16px 40px}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px}
+h1{font-size:20px;margin:0}
+h2{font-size:15px;margin:0 0 12px;display:flex;align-items:center;gap:8px}
+h2 .n{background:var(--brand);color:#fff;border-radius:50%;width:22px;height:22px;display:inline-grid;place-items:center;font-size:12px}
+.sub{color:var(--muted);font-size:13px;margin:2px 0 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+button{font:inherit;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:7px;padding:7px 12px;cursor:pointer}
+button:hover{border-color:var(--brand)}
+button.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+button.ghost{border:none;background:none;color:var(--bad);padding:4px 6px}
+input,select,textarea{font:inherit;width:100%;border:1px solid var(--line);border-radius:6px;padding:6px 8px;background:#fff;color:var(--ink)}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-soft);border-color:var(--brand)}
+input[type=number]{text-align:right}
+label{display:block;font-size:12px;color:var(--muted);margin-bottom:3px}
+.grid{display:grid;gap:10px 12px;grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
+.grid .wide{grid-column:span 2}
+.hint{font-size:12px;color:var(--muted);margin:8px 0 0}
+.tbl{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%}
+th,td{border-bottom:1px solid var(--line);padding:6px;text-align:left;vertical-align:middle}
+th{font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap;background:#fafbfc}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+#items td input,#items td select{min-width:70px}
+#items td.name input{min-width:150px}
+tfoot td{font-weight:700;background:#fafbfc}
+.bad{color:var(--bad);background:var(--bad-soft)}
+.alert{border-radius:8px;padding:8px 12px;margin:10px 0 0;font-size:13px}
+.alert.bad{border:1px solid #f3b7b2}
+.alert.warn{color:var(--warn);background:var(--warn-soft);border:1px solid #f0d58a}
+.tag{display:inline-block;font-size:11px;padding:1px 6px;border-radius:4px;background:var(--brand-soft);color:var(--brand);font-weight:600}
+.sel-col{background:var(--brand-soft)!important}
+.desc{font-size:12px;color:var(--muted);font-weight:400;white-space:normal;min-width:120px}
+.sample-banner{display:none;background:var(--warn-soft);color:var(--warn);border:1px solid #f0d58a;border-radius:8px;padding:8px 12px;margin-bottom:14px;font-weight:600}
+.sample .sample-banner{display:block}
+details{border:1px solid var(--line);border-radius:10px;background:var(--card);margin-bottom:14px}
+summary{cursor:pointer;padding:12px 16px;font-weight:600}
+details .body{padding:0 16px 14px;font-size:13px}
+details .body h3{font-size:13px;margin:14px 0 4px}
+details code{background:#f1f3f5;padding:1px 5px;border-radius:4px;font-size:12px}
+.mono{font-family:Consolas,"SFMono-Regular",monospace}
+
+/* Quotation paper */
+#quote{background:#fff;border:1px solid var(--line);padding:32px;font-family:Arial,Helvetica,sans-serif;color:#111;font-size:12.5px}
+#quote h3{font-size:22px;letter-spacing:4px;text-align:center;margin:0 0 20px}
+#quote .q-top{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+#quote .q-box{border:1px solid #999;padding:10px}
+#quote .q-box b{display:block;font-size:11px;color:#555;margin-bottom:3px;text-transform:uppercase}
+#quote .q-meta td{border:none;padding:2px 6px 2px 0}
+#quote .q-meta td:first-child{color:#555;white-space:nowrap;width:110px}
+#quote table.q-items th,#quote table.q-items td{border:1px solid #999;padding:5px 6px}
+#quote table.q-items th{background:#eef1f5;color:#111;font-size:11px}
+#quote .q-terms td{border:none;border-bottom:1px dotted #bbb;padding:4px 6px 4px 0}
+#quote .q-terms td:first-child{width:130px;color:#555;white-space:nowrap}
+#quote .q-sign{display:flex;justify-content:flex-end;margin-top:36px}
+#quote .q-sign div{border-top:1px solid #111;padding-top:4px;min-width:220px;text-align:center}
+#quote .pre{white-space:pre-line}
+footer{text-align:center;color:var(--muted);font-size:11px;margin-top:24px}
+
+@media (max-width:640px){
+  .grid .wide{grid-column:span 1}
+  #quote{padding:16px}
+  #quote .q-top{grid-template-columns:1fr}
+}
+@media print{
+  @page{size:A4;margin:12mm}
+  body{background:#fff}
+  body *{visibility:hidden}
+  #quote,#quote *{visibility:visible}
+  #quote{position:absolute;left:0;top:0;width:100%;border:none;padding:0}
+}
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <header>
+    <div>
+      <h1>수출 견적서 계산기</h1>
+      <p class="sub">원가·환율·물류비 → EXW / FOB / CFR / CIF 단가 비교 → 영문 견적서</p>
+    </div>
+    <div class="btns">
+      <button id="btnSample">예시 데이터 넣기</button>
+      <button id="btnReset">초기화</button>
+      <button class="primary" id="btnPrint">인쇄 / PDF 저장</button>
+    </div>
+  </header>
+
+  <div class="sample-banner">⚠ 예시 데이터입니다 — 바이어·품목·원가·환율·운임 모두 가상의 숫자입니다.</div>
+
+  <details>
+    <summary>도움말 — 인코텀즈와 계산 방법</summary>
+    <div class="body">
+      <h3>4가지 조건 (Incoterms® 2020)</h3>
+      <table>
+        <tr><th>조건</th><th>판매자가 부담하는 비용</th><th>위험 이전 시점</th></tr>
+        <tr><td><b>EXW</b> 공장인도</td><td>물품가만. 수출통관도 바이어 몫</td><td>판매자 공장·창고에서 인도 시</td></tr>
+        <tr><td><b>FOB</b> 본선인도</td><td>물품가 + 내륙운송 + 수출통관 + 선적지 부대비용(THC 등)</td><td>선적항에서 본선 적재 시</td></tr>
+        <tr><td><b>CFR</b> 운임포함</td><td>FOB + 도착항까지 해상운임</td><td>FOB와 동일 (선적 시)</td></tr>
+        <tr><td><b>CIF</b> 운임·보험포함</td><td>CFR + 적하보험료</td><td>FOB와 동일 (선적 시)</td></tr>
+      </table>
+      <p class="hint">CFR·CIF는 비용은 도착항까지 판매자가 내지만, 위험은 선적 순간 바이어에게 넘어갑니다. 컨테이너 화물은 ICC가 FOB·CFR·CIF 대신 FCA·CPT·CIP 사용을 권장하지만, 국내 현업에서는 여전히 FOB/CIF가 많이 쓰입니다.</p>
+
+      <h3>계산식</h3>
+      <p>
+        ① 원가(USD) = 원가(KRW) ÷ 적용환율 · 적용환율 = 입력환율 × (1 − 환율 버퍼)<br>
+        ② EXW 단가 = 원가(USD) ÷ (1 − 목표 마진율) <span class="hint">— 마진은 판매가 대비 이익률(markup 아님)</span><br>
+        ③ FOB = EXW + (내륙운송 + 통관·선적지 부대비용) 배분액<br>
+        ④ CFR = FOB + 해상운임 배분액<br>
+        ⑤ CIF = CFR ÷ (1 − 1.1 × 보험요율) <span class="hint">— 보험금액 = CIF × 110% 관행. 보험료가 CIF 안에 들어 있어 순환식을 풀어 계산</span>
+      </p>
+      <p class="hint">물류비는 마진 없이 원가 그대로 전가하며, 품목별로 <b>원가금액 비중</b>대로 나눕니다. 부피 차이가 큰 품목이 섞이면 CBM 기준 배분이 더 정확하니 결과를 확인하세요. 단가는 지정 자릿수에서 <b>올림</b>하고, 총액은 (올림 단가 × 수량)의 합입니다.</p>
+
+      <h3>환율은 무엇을 넣어야 하나</h3>
+      <p class="hint">달러 대금을 원화로 바꿀 때 실제로 받는 환율은 매매기준율보다 낮은 <b>전신환매입률(TTB)</b>입니다. 회사 사내환율(예산환율)이 있으면 그 값을, 없으면 거래 은행 TTB에 환율 버퍼를 두는 방식을 권장합니다. 참고: 서울외국환중개 매매기준율, 거래 은행 고시환율.</p>
+
+      <h3>협상 단가</h3>
+      <p class="hint">바이어가 "CIF $4.20이면 하겠다"고 할 때 해당 품목에 4.20을 넣으면, 그 가격에서 보험료·운임·부대비용을 역산해 실제 마진을 보여 줍니다. 입력한 값은 견적서 단가로 그대로 쓰입니다.</p>
+    </div>
+  </details>
+
+  <section class="card">
+    <h2><span class="n">1</span>품목</h2>
+    <div class="tbl">
+      <table id="items">
+        <thead><tr>
+          <th>#</th><th>품목명 (영문)</th><th>HS Code</th><th class="num">수량</th><th>단위</th>
+          <th class="num">개당 원가 (KRW)</th><th class="num">MOQ</th><th class="num">협상 단가 (USD, 선택)</th><th></th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="btns" style="margin-top:10px">
+      <button id="btnAdd">+ 품목 추가</button>
+      <button id="btnUpload">CSV / 엑셀 불러오기</button>
+      <button id="btnTplX">양식 받기 (엑셀)</button>
+      <button id="btnTpl">양식 받기 (CSV)</button>
+      <input type="file" id="fileIn" accept=".csv,.txt,.xlsx,.xls" hidden>
+    </div>
+    <p class="hint" id="importMsg"></p>
+    <p class="hint">불러오기는 첫 행(제목줄)의 열 이름으로 맞춥니다: 품목명 · HS Code · 수량 · 단위 · 개당 원가(KRW) · MOQ · 협상 단가(USD). 파일은 브라우저 안에서만 읽고 서버로 보내지 않습니다. 엑셀(.xlsx)은 읽기 라이브러리를 처음 한 번 인터넷에서 받아옵니다.</p>
+    <p class="hint">협상 단가는 아래에서 선택한 인코텀즈 기준 가격입니다. 비워 두면 목표 마진으로 계산한 단가를 씁니다.</p>
+  </section>
+
+  <section class="card">
+    <h2><span class="n">2</span>마진 · 환율 · 물류비</h2>
+    <div class="grid">
+      <div><label>목표 마진율 (%)</label><input type="number" step="0.1" data-k="margin"></div>
+      <div><label>최저 마진율 (%)</label><input type="number" step="0.1" data-k="minMargin"></div>
+      <div><label>환율 (KRW/USD)</label><input type="number" step="0.01" data-k="rate"></div>
+      <div><label>&nbsp;</label><button id="btnRate" style="width:100%">최신 환율 불러오기</button></div>
+      <div><label>환율 기준일</label><input type="date" data-k="rateDate"></div>
+      <div><label>환율 버퍼 (%)</label><input type="number" step="0.1" data-k="buffer"></div>
+      <div><label>내륙운송비 (KRW)</label><input type="number" step="1000" data-k="inland"></div>
+      <div><label>통관·선적지 부대비용 (KRW)</label><input type="number" step="1000" data-k="origin"></div>
+      <div><label>해상운임 총액 (USD)</label><input type="number" step="1" data-k="freight"></div>
+      <div><label>운임 견적 유효기간</label><input type="date" data-k="freightValid"></div>
+      <div><label>적하보험요율 (%)</label><input type="number" step="0.01" data-k="insRate"></div>
+      <div><label>단가 소수점</label>
+        <select data-k="decimals"><option value="2">2자리 (0.01)</option><option value="3">3자리</option><option value="4">4자리</option></select></div>
+    </div>
+    <p class="hint" id="rateInfo"></p>
+    <p class="hint">불러온 환율은 시장 중간값(무료 API, 하루 1회 갱신)이라 은행 전신환매입률(TTB)보다 높습니다. 환율 버퍼 1~2%를 두거나 사내환율로 덮어쓰세요.</p>
+    <p class="hint">부대비용 예: 통관수수료, THC, DOC fee, Wharfage, CFS(LCL). 해상운임은 O/F에 BAF·LSS 등 할증료를 더한 총액을 포워더 견적 기준으로 넣으세요.</p>
+  </section>
+
+  <section class="card">
+    <h2><span class="n">3</span>인코텀즈별 단가 비교 <span class="tag" id="selTag"></span></h2>
+    <div class="tbl"><table id="compare"></table></div>
+    <div id="alerts"></div>
+  </section>
+
+  <section class="card">
+    <h2><span class="n">4</span>견적서 정보</h2>
+    <div class="grid">
+      <div class="wide"><label>Seller 회사명</label><input data-k="sellerName" placeholder="Your Company Co., Ltd."></div>
+      <div class="wide"><label>Seller 주소·연락처</label><textarea rows="2" data-k="sellerAddr" placeholder="Address&#10;Tel / Email"></textarea></div>
+      <div class="wide"><label>Buyer 회사명</label><input data-k="buyerName"></div>
+      <div class="wide"><label>Buyer 주소·담당자</label><textarea rows="2" data-k="buyerAddr"></textarea></div>
+      <div><label>Quotation No.</label><input data-k="quoteNo"></div>
+      <div><label>Date</label><input type="date" data-k="date"></div>
+      <div><label>유효기간 (일)</label><input type="number" step="1" data-k="validDays"></div>
+      <div><label>인코텀즈</label>
+        <select data-k="term"><option>EXW</option><option>FOB</option><option>CFR</option><option>CIF</option></select></div>
+      <div><label>EXW 인도장소</label><input data-k="exwPlace" placeholder="Seller's factory, Incheon"></div>
+      <div><label>선적항 (POL)</label><input data-k="pol" placeholder="Busan, Korea"></div>
+      <div><label>도착항 (POD)</label><input data-k="pod" placeholder="Ho Chi Minh, Vietnam"></div>
+      <div><label>Payment Terms</label>
+        <select data-k="payment">
+          <option>T/T 30% advance, 70% before shipment</option>
+          <option>T/T 100% in advance</option>
+          <option>L/C at sight</option>
+          <option>D/P at sight</option>
+          <option value="other">직접 입력</option>
+        </select></div>
+      <div class="wide" id="payOtherBox"><label>Payment Terms 직접 입력</label><input data-k="paymentOther"></div>
+      <div class="wide"><label>Lead Time</label><input data-k="leadTime" placeholder="30 days after receipt of deposit"></div>
+      <div class="wide"><label>Packing</label><input data-k="packing" placeholder="Export standard carton"></div>
+      <div><label>Origin</label><input data-k="origin2" placeholder="Republic of Korea"></div>
+      <div class="wide"><label>Remarks</label><textarea rows="2" data-k="remarks"></textarea></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2><span class="n">5</span>견적서 미리보기</h2>
+    <div class="tbl"><div id="quote"></div></div>
+  </section>
+
+  <footer>참고용 계산 • 실제 견적은 회사 규정과 최신 운임·환율을 확인하세요</footer>
+</div>
+
+<script>
+(() => {
+const KEY = 'quotation-builder-v1';
+const TERMS = ['EXW','FOB','CFR','CIF'];
+const DESC = {
+  EXW:'물품가만 포함',
+  FOB:'+ 내륙운송·통관·선적지 부대비용',
+  CFR:'+ 도착항까지 해상운임',
+  CIF:'+ 적하보험료 (CIF×110% 부보)'
+};
+const today = () => new Date().toISOString().slice(0,10);
+const blankItem = () => ({name:'',hs:'',qty:'',unit:'pcs',cost:'',moq:'',nego:''});
+
+function defaults(){
+  const d = today();
+  return {
+    items:[blankItem()],
+    margin:20, minMargin:10, rate:'', rateDate:d, buffer:1,
+    inland:'', origin:'', freight:'', freightValid:'', insRate:0.1, decimals:'2',
+    sellerName:'', sellerAddr:'', buyerName:'', buyerAddr:'',
+    quoteNo:'Q-'+d.replace(/-/g,'')+'-001', date:d, validDays:30, term:'FOB',
+    exwPlace:'', pol:'Busan, Korea', pod:'', payment:'T/T 30% advance, 70% before shipment', paymentOther:'',
+    leadTime:'', packing:'Export standard carton', origin2:'Republic of Korea', remarks:'', sample:false
+  };
+}
+function sample(){
+  const d = today();
+  const fv = new Date(Date.now()+14*864e5).toISOString().slice(0,10);
+  return Object.assign(defaults(), {
+    items:[
+      {name:'Stainless Tumbler 500ml', hs:'9617.00', qty:3000, unit:'pcs', cost:4200, moq:1000, nego:''},
+      {name:'Silicone Lid (Replacement)', hs:'3924.10', qty:2000, unit:'pcs', cost:650, moq:1000, nego:''},
+      {name:'Gift Set (Tumbler + Pouch)', hs:'9617.00', qty:500, unit:'set', cost:9800, moq:200, nego:'8.90'}
+    ],
+    margin:22, minMargin:12, rate:1380, rateDate:d, rateSrc:'예시 (가상)', buffer:1.5,
+    inland:450000, origin:380000, freight:1250, freightValid:fv, insRate:0.12,
+    sellerName:'Sample Korea Co., Ltd. (Sample)', sellerAddr:'123 Sample-ro, Incheon, Korea\nTel +82-32-000-0000 / sales@example.com',
+    buyerName:'ABC Trading Co. (가상)', buyerAddr:'Sample Street, District 1, Ho Chi Minh City, Vietnam\nAttn: Purchasing Manager',
+    term:'CIF', exwPlace:"Seller's factory, Incheon", pol:'Busan, Korea', pod:'Ho Chi Minh, Vietnam',
+    leadTime:'30 days after receipt of deposit', packing:'Export standard carton, 24 pcs/ctn',
+    remarks:'Prices are based on the quantities above.\nOcean freight is subject to change at the time of booking.', sample:true
+  });
+}
+
+let S;
+try { S = Object.assign(defaults(), JSON.parse(localStorage.getItem(KEY)||'null')||{}); } catch(e){ S = defaults(); }
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){} };
+
+const $ = s => document.querySelector(s);
+const num = v => { const n = parseFloat(v); return isFinite(n) ? n : 0; };
+const esc = s => String(s??'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ceilTo = (x,d) => { const f = 10**d; return Math.ceil(x*f - 1e-7)/f; };
+const usd = (x,d=2) => x.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+const krw = x => Math.round(x).toLocaleString('ko-KR');
+const pct = x => isFinite(x) ? (x*100).toFixed(1)+'%' : '—';
+const fmtDate = s => { if(!s) return ''; const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}); };
+const addDays = (s,n) => { if(!s) return ''; const [y,m,d]=s.split('-').map(Number); const t=new Date(y,m-1,d+n); return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0'); };
+
+/* ---------- calculation ---------- */
+function compute(){
+  const R = num(S.rate) * (1 - num(S.buffer)/100);
+  const m = num(S.margin)/100, minM = num(S.minMargin)/100, r = num(S.insRate)/100, d = +S.decimals || 2;
+  const errs = [];
+  if (!(R > 0)) errs.push('환율을 입력하세요.');
+  if (m >= 1) errs.push('목표 마진율은 100% 미만이어야 합니다.');
+  if (1.1*r >= 1) errs.push('보험요율이 너무 큽니다.');
+  const rows = S.items.map((it,i)=>({it,i,q:num(it.qty),cKRW:num(it.cost)})).filter(x=>x.q>0 && x.cKRW>0);
+  if (!rows.length) errs.push('수량과 원가가 입력된 품목이 없습니다.');
+  if (errs.length) return {errs};
+
+  const originUSD = (num(S.inland)+num(S.origin))/R;
+  const L = {EXW:0, FOB:originUSD, CFR:originUSD+num(S.freight), CIF:originUSD+num(S.freight)};
+  rows.forEach(x => x.c = x.cKRW/R);
+  const C = rows.reduce((s,x)=>s+x.c*x.q,0);
+  const ins = T => T==='CIF' ? (1-1.1*r) : 1;
+  // margin implied by a given unit price at term T
+  const marginAt = (x,T,price) => { const exwEq = price*ins(T) - L[T]*x.c/C; return exwEq>0 ? (exwEq-x.c)/exwEq : -Infinity; };
+
+  rows.forEach(x=>{
+    const exw = x.c/(1-m), share = x.c/C;
+    x.unit = {}; x.mg = {};
+    TERMS.forEach(T=>{
+      const raw = (exw + L[T]*share)/ins(T);
+      x.unit[T] = ceilTo(raw,d);
+      x.mg[T] = marginAt(x,T,x.unit[T]);
+    });
+    const n = num(x.it.nego);
+    x.nego = n>0 ? n : null;
+    x.negoMg = x.nego ? marginAt(x,S.term,x.nego) : null;
+    x.qPrice = x.nego ?? x.unit[S.term];
+    x.qMg = x.nego ? x.negoMg : x.mg[S.term];
+  });
+  const tot = {}; TERMS.forEach(T=> tot[T] = rows.reduce((s,x)=>s+x.unit[T]*x.q,0));
+  const costTot = rows.reduce((s,x)=>s+x.c*x.q,0);
+  const profit = {}; TERMS.forEach(T=> profit[T] = rows.reduce((s,x)=>s+(x.unit[T]*ins(T) - L[T]*x.c/C - x.c)*x.q,0));
+  const qTot = rows.reduce((s,x)=>s+x.qPrice*x.q,0);
+  return {R,m,minM,r,d,L,rows,tot,costTot,profit,qTot,insAmt: tot.CIF*1.1*r};
+}
+
+/* ---------- render ---------- */
+function renderItems(){
+  $('#items tbody').innerHTML = S.items.map((it,i)=>`
+    <tr data-i="${i}">
+      <td>${i+1}</td>
+      <td class="name"><input data-f="name" value="${esc(it.name)}" placeholder="Item description"></td>
+      <td><input data-f="hs" value="${esc(it.hs)}" placeholder="0000.00"></td>
+      <td><input type="number" data-f="qty" value="${esc(it.qty)}" min="0"></td>
+      <td><select data-f="unit">${[...new Set(['pcs','set','carton','kg',it.unit||'pcs'])].map(u=>`<option${u===it.unit?' selected':''}>${u}</option>`).join('')}</select></td>
+      <td><input type="number" data-f="cost" value="${esc(it.cost)}" min="0" step="10"></td>
+      <td><input type="number" data-f="moq" value="${esc(it.moq)}" min="0"></td>
+      <td><input type="number" data-f="nego" value="${esc(it.nego)}" min="0" step="0.01" placeholder="—"></td>
+      <td><button class="ghost" data-del="${i}" title="삭제" aria-label="삭제">✕</button></td>
+    </tr>`).join('');
+}
+
+function render(){
+  const K = compute();
+  document.getElementById('app').classList.toggle('sample', !!S.sample);
+  $('#payOtherBox').style.display = S.payment==='other' ? '' : 'none';
+  $('#selTag').textContent = '견적 조건: ' + S.term;
+  const alerts = [];
+
+  if (K.errs){
+    $('#compare').innerHTML = `<tr><td class="hint">${K.errs.map(esc).join('<br>')}</td></tr>`;
+    $('#rateInfo').textContent = '';
+    $('#alerts').innerHTML = '';
+    renderQuote(null);
+    return;
+  }
+  const {R,d,rows,tot,L,minM} = K;
+  $('#rateInfo').textContent = `적용환율 ${R.toFixed(2)} KRW/USD (입력 ${num(S.rate)} × (1 − ${num(S.buffer)}%))` + (S.rateDate?` · 기준일 ${S.rateDate}`:'') + (S.rateSrc?` · 출처 ${S.rateSrc}`:'') +
+    ` · 선적지 비용 ${usd(L.FOB)} USD · 원가 합계 ${usd(K.costTot)} USD`;
+
+  const cls = (T,mg) => [T===S.term?'sel-col':'', mg<minM?'bad':''].join(' ');
+  let h = `<thead><tr><th>품목</th><th class="num">수량</th><th class="num">원가 (USD)</th>`;
+  TERMS.forEach(T=> h += `<th class="num ${T===S.term?'sel-col':''}">${T}<div class="desc">${DESC[T]}</div></th>`);
+  h += `<th class="num">협상 단가 → 마진</th></tr></thead><tbody>`;
+  rows.forEach(x=>{
+    h += `<tr><td>${esc(x.it.name||'(품목 '+(x.i+1)+')')}</td><td class="num">${x.q.toLocaleString()} ${esc(x.it.unit)}</td><td class="num">${usd(x.c,d+1)}</td>`;
+    TERMS.forEach(T=> h += `<td class="num ${cls(T,x.mg[T])}">${usd(x.unit[T],d)}<div class="desc">마진 ${pct(x.mg[T])}</div></td>`);
+    h += x.nego ? `<td class="num ${x.negoMg<minM?'bad':''}">${S.term} ${usd(x.nego,d)}<div class="desc">마진 ${pct(x.negoMg)}</div></td>` : `<td class="num desc">—</td>`;
+    h += `</tr>`;
+  });
+  h += `</tbody><tfoot><tr><td>총액 (USD)</td><td></td><td class="num">${usd(K.costTot)}</td>`;
+  TERMS.forEach(T=> h += `<td class="num ${T===S.term?'sel-col':''}">${usd(tot[T])}<div class="desc">이익 ${usd(K.profit[T])}</div></td>`);
+  h += `<td></td></tr></tfoot>`;
+  $('#compare').innerHTML = h;
+
+  const low = rows.filter(x=>x.qMg<minM);
+  if (K.m < minM) alerts.push(['bad',`목표 마진율(${S.margin}%)이 최저 마진율(${S.minMargin}%)보다 낮습니다.`]);
+  low.forEach(x=> alerts.push(['bad',`⚠ ${esc(x.it.name||'품목 '+(x.i+1))}: ${S.term} 견적 단가 ${usd(x.qPrice,d)} USD의 마진 ${pct(x.qMg)} — 최저 마진율 ${S.minMargin}% 미만입니다.`]));
+  rows.forEach(x=>{ const moq=num(x.it.moq); if(moq && x.q<moq) alerts.push(['warn',`${esc(x.it.name||'품목 '+(x.i+1))}: 수량 ${x.q}이 MOQ ${moq}보다 적습니다.`]); });
+  const validUntil = addDays(S.date, num(S.validDays));
+  if ((S.term==='CFR'||S.term==='CIF') && S.freightValid && validUntil > S.freightValid)
+    alerts.push(['warn',`견적 유효기간(${validUntil})이 운임 견적 유효기간(${S.freightValid})보다 깁니다. 운임 변동 위험이 있습니다.`]);
+  if ((S.term==='CFR'||S.term==='CIF') && !num(S.freight)) alerts.push(['warn','해상운임이 0입니다. CFR/CIF 단가에 운임이 빠져 있습니다.']);
+  if (S.rateDate && (Date.now() - new Date(S.rateDate)) > 7*864e5) alerts.push(['warn',`환율 기준일(${S.rateDate})이 7일 이상 지났습니다.`]);
+  $('#alerts').innerHTML = alerts.map(([c,t])=>`<div class="alert ${c}">${t}</div>`).join('');
+  renderQuote(K);
+}
+
+function renderQuote(K){
+  const d = K ? K.d : 2;
+  const place = {EXW:S.exwPlace, FOB:S.pol, CFR:S.pod, CIF:S.pod}[S.term] || '';
+  const terms = `${S.term} ${place} (Incoterms® 2020)`;
+  const pay = S.payment==='other' ? S.paymentOther : S.payment;
+  const rowsHtml = K ? K.rows.map((x,n)=>`
+    <tr><td style="text-align:center">${n+1}</td><td>${esc(x.it.name)}</td><td>${esc(x.it.hs)}</td>
+    <td class="num">${num(x.it.moq)?num(x.it.moq).toLocaleString('en-US'):'-'}</td>
+    <td class="num">${x.q.toLocaleString('en-US')}</td><td>${esc(x.it.unit)}</td>
+    <td class="num">${usd(x.qPrice,d)}</td><td class="num">${usd(x.qPrice*x.q)}</td></tr>`).join('')
+    : `<tr><td colspan="8" style="text-align:center;color:#888">No items</td></tr>`;
+  const line = (k,v) => v ? `<tr><td>${k}</td><td class="pre">${esc(v)}</td></tr>` : '';
+  $('#quote').innerHTML = `
+    <h3>QUOTATION</h3>
+    <div class="q-top">
+      <div class="q-box"><b>Seller</b><div style="font-weight:700">${esc(S.sellerName)||'&nbsp;'}</div><div class="pre">${esc(S.sellerAddr)}</div></div>
+      <div class="q-box"><b>Messrs. (Buyer)</b><div style="font-weight:700">${esc(S.buyerName)||'&nbsp;'}</div><div class="pre">${esc(S.buyerAddr)}</div></div>
+    </div>
+    <table class="q-meta" style="margin-bottom:12px">
+      <tr><td>Quotation No.</td><td><b>${esc(S.quoteNo)}</b></td></tr>
+      <tr><td>Date</td><td>${fmtDate(S.date)}</td></tr>
+      <tr><td>Valid until</td><td>${fmtDate(addDays(S.date,num(S.validDays)))}</td></tr>
+      <tr><td>Currency</td><td>USD</td></tr>
+    </table>
+    <p style="margin:0 0 8px">We are pleased to quote as follows:</p>
+    <table class="q-items">
+      <thead><tr><th>No.</th><th>Description</th><th>HS Code</th><th class="num">MOQ</th><th class="num">Q'ty</th><th>Unit</th><th class="num">Unit Price<br>(USD)</th><th class="num">Amount<br>(USD)</th></tr></thead>
+      <tbody>${rowsHtml}</tbody>
+      <tfoot><tr><td colspan="7" style="text-align:right">TOTAL ${esc(S.term)} ${esc(place)}</td><td class="num">USD ${usd(K?K.qTot:0)}</td></tr></tfoot>
+    </table>
+    <table class="q-terms" style="margin-top:14px">
+      ${line('Price Terms',terms)}${line('Payment Terms',pay)}${line('Lead Time',S.leadTime)}
+      ${line('Port of Loading',S.term==='EXW'?'':S.pol)}${line('Port of Discharge',(S.term==='CFR'||S.term==='CIF')?S.pod:'')}
+      ${line('Packing',S.packing)}${line('Origin',S.origin2)}${S.term==='CIF'?line('Insurance','ICC(C) or equivalent, covering 110% of CIF value'):''}
+      ${line('Remarks',S.remarks)}
+    </table>
+    <div class="q-sign"><div>Authorized Signature<br><span style="font-size:11px;color:#555">${esc(S.sellerName)}</span></div></div>`;
+}
+
+/* ---------- bind ---------- */
+function fillCommon(){
+  document.querySelectorAll('[data-k]').forEach(el=>{ el.value = S[el.dataset.k] ?? ''; });
+}
+document.addEventListener('input', e=>{
+  const el = e.target;
+  if (el.dataset.k){ S[el.dataset.k] = el.value; if (el.dataset.k==='rate') S.rateSrc = '직접 입력'; }
+  else if (el.dataset.f){ const i = +el.closest('tr').dataset.i; S.items[i][el.dataset.f] = el.value; }
+  else return;
+  save(); render();
+});
+$('#items').addEventListener('click', e=>{
+  const b = e.target.closest('[data-del]'); if(!b) return;
+  S.items.splice(+b.dataset.del,1); if(!S.items.length) S.items.push(blankItem());
+  save(); renderItems(); render();
+});
+$('#btnAdd').onclick = ()=>{ S.items.push(blankItem()); save(); renderItems(); render(); };
+$('#btnSample').onclick = ()=>{ S = sample(); save(); fillCommon(); renderItems(); render(); };
+$('#btnReset').onclick = ()=>{ if(!confirm('입력값을 모두 지울까요?')) return; S = defaults(); save(); fillCommon(); renderItems(); render(); };
+$('#btnPrint').onclick = ()=> window.print();
+
+/* ---------- CSV / XLSX import ---------- */
+const COLS = [
+  ['name','품목명','Item (English)'], ['hs','HS Code','0000.00'], ['qty','수량','1000'], ['unit','단위','pcs'],
+  ['cost','개당 원가(KRW)','5000'], ['moq','MOQ','500'], ['nego','협상 단가(USD)','']
+];
+const norm = s => String(s??'').toLowerCase().replace(/\(.*?\)|[\s_\-'.]/g,'');
+const ALIAS = {
+  name:['품목명','품명','품목','상품명','description','item','itemname','name','product'],
+  hs:['hs','hscode','hs코드','세번'],
+  qty:['수량','qty','quantity','주문수량'],
+  unit:['단위','unit','uom'],
+  cost:['개당원가','원가','매입단가','단가','cost','unitcost'],
+  moq:['moq','최소주문수량'],
+  nego:['협상단가','희망단가','목표단가','nego','targetprice','offerprice']
+};
+const UNIT_MAP = {ea:'pcs',pc:'pcs',pcs:'pcs',개:'pcs',set:'set',sets:'set',세트:'set',ctn:'carton',ctns:'carton',carton:'carton',박스:'carton',box:'carton',kg:'kg'};
+const toNum = v => { const n = parseFloat(String(v??'').replace(/[,\s₩$원]/g,'')); return isFinite(n) ? n : ''; };
+
+function parseCSV(t){
+  t = t.replace(/^﻿/,'');
+  const first = t.split('\n')[0];
+  const delim = first.includes('\t') ? '\t' : (first.split(';').length > first.split(',').length ? ';' : ',');
+  const rows=[]; let row=[], f='', q=false;
+  for (let i=0;i<t.length;i++){
+    const c=t[i];
+    if (q){ if (c==='"'){ if (t[i+1]==='"'){ f+='"'; i++; } else q=false; } else f+=c; }
+    else if (c==='"') q=true;
+    else if (c===delim){ row.push(f); f=''; }
+    else if (c==='\n'){ row.push(f); rows.push(row); row=[]; f=''; }
+    else if (c!=='\r') f+=c;
+  }
+  if (f || row.length){ row.push(f); rows.push(row); }
+  return rows;
+}
+function decodeText(buf){
+  try { return new TextDecoder('utf-8',{fatal:true}).decode(buf); }
+  catch(e){ return new TextDecoder('euc-kr').decode(buf); } // 한글 엑셀이 저장한 CSV(CP949)
+}
+function loadXLSX(){
+  if (window.XLSX) return Promise.resolve(window.XLSX);
+  return new Promise((res,rej)=>{
+    const s=document.createElement('script');
+    s.src='https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';
+    s.onload=()=>res(window.XLSX); s.onerror=()=>rej(new Error('엑셀 라이브러리를 불러오지 못했습니다. CSV로 저장해 올려 주세요.'));
+    document.head.appendChild(s);
+  });
+}
+function rowsToItems(rows){
+  // 제목줄 찾기: 앞 10행 중 열 이름이 2개 이상 맞는 첫 행
+  let hi=-1, map={};
+  for (let r=0; r<Math.min(rows.length,10) && hi<0; r++){
+    const m={};
+    rows[r].forEach((h,c)=>{ const n=norm(h); for (const k in ALIAS) if (!(k in m) && ALIAS[k].some(a=>norm(a)===n)) m[k]=c; });
+    if (Object.keys(m).length>=2){ hi=r; map=m; }
+  }
+  if (hi<0) throw new Error('제목줄을 찾지 못했습니다. "양식 받기"의 열 이름을 사용하세요.');
+  if (!('name' in map) || !('qty' in map) || !('cost' in map)) throw new Error('필수 열(품목명·수량·개당 원가)이 없습니다.');
+  const get = (row,k) => k in map ? row[map[k]] : '';
+  return rows.slice(hi+1).filter(r=>String(get(r,'name')).trim()).map(r=>({
+    name:String(get(r,'name')).trim(), hs:String(get(r,'hs')??'').trim(),
+    qty:toNum(get(r,'qty')), unit:UNIT_MAP[norm(get(r,'unit'))] || String(get(r,'unit')||'pcs').trim(),
+    cost:toNum(get(r,'cost')), moq:toNum(get(r,'moq')), nego:toNum(get(r,'nego'))
+  }));
+}
+$('#btnUpload').onclick = ()=> $('#fileIn').click();
+$('#fileIn').onchange = async e=>{
+  const file = e.target.files[0]; e.target.value=''; if(!file) return;
+  const msg = $('#importMsg');
+  try{
+    msg.textContent = '읽는 중…';
+    const buf = await file.arrayBuffer();
+    let rows;
+    if (/\.xlsx?$/i.test(file.name)){
+      const X = await loadXLSX();
+      const wb = X.read(buf,{type:'array'});
+      rows = X.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:true,defval:''});
+    } else rows = parseCSV(decodeText(buf));
+    const items = rowsToItems(rows);
+    if (!items.length) throw new Error('불러올 품목 행이 없습니다.');
+    S.items = items; S.sample = false; save(); renderItems(); render();
+    msg.textContent = `✓ ${file.name}에서 품목 ${items.length}개를 불러왔습니다. 값을 확인하세요.`;
+  }catch(err){ msg.textContent = '✕ ' + (err.message || '파일을 읽지 못했습니다.'); }
+};
+$('#btnTpl').onclick = ()=>{
+  const csv = '﻿' + COLS.map(c=>c[1]).join(',') + '\n' + COLS.map(c=>c[2]).join(',') + '\n';
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download = 'quotation-items-template.csv'; a.click(); URL.revokeObjectURL(a.href);
+};
+
+$('#btnTplX').onclick = async e=>{
+  const b = e.currentTarget; b.disabled = true;
+  try{
+    const X = await loadXLSX();
+    const ws = X.utils.aoa_to_sheet([
+      COLS.map(c=>c[1]),
+      ['Stainless Tumbler 500ml','9617.00',3000,'pcs',4200,1000,''],
+      ['Silicone Lid','3924.10',2000,'pcs',650,1000,'']
+    ]);
+    ws['!cols'] = [{wch:32},{wch:12},{wch:10},{wch:8},{wch:16},{wch:10},{wch:16}];
+    ws['B2'].t = ws['B3'].t = 's'; // HS Code는 텍스트(앞자리 0·소수점 유지)
+    const wb = X.utils.book_new();
+    X.utils.book_append_sheet(wb, ws, '품목표');
+    X.writeFile(wb, 'quotation-items-template.xlsx');
+  }catch(err){ alert(err.message || '엑셀 양식을 만들지 못했습니다. CSV 양식을 사용하세요.'); }
+  finally{ b.disabled = false; }
+};
+
+/* ---------- exchange rate API ---------- */
+const RATE_SOURCES = [
+  // 1순위: GitHub Actions가 API 키(Secret)로 매일 갱신하는 파일 — 키는 페이지에 노출되지 않음
+  {name:'ExchangeRate-API (자동 갱신)', url:'../data/usd-krw.json?t='+Date.now(),
+   pick:j=>({rate:j.rate, date:j.date})},
+  {name:'ExchangeRate-API (open.er-api.com)', url:'https://open.er-api.com/v6/latest/USD',
+   pick:j=>{ if(j.result!=='success') throw 0; return {rate:j.rates.KRW, date:new Date(j.time_last_update_unix*1000).toISOString().slice(0,10)}; }},
+  {name:'Frankfurter (ECB 기준환율)', url:'https://api.frankfurter.dev/v1/latest?base=USD&symbols=KRW',
+   pick:j=>({rate:j.rates.KRW, date:j.date})}
+];
+$('#btnRate').onclick = async e=>{
+  const b = e.currentTarget; b.disabled = true; b.textContent = '불러오는 중…';
+  try{
+    for (const src of RATE_SOURCES){
+      try{
+        const r = src.pick(await (await fetch(src.url)).json());
+        if (!(r.rate>0)) throw 0;
+        Object.assign(S,{rate:+r.rate.toFixed(2), rateDate:r.date, rateSrc:src.name});
+        save(); fillCommon(); render(); return;
+      }catch(_){}
+    }
+    alert('환율을 불러오지 못했습니다. 직접 입력하세요.');
+  } finally { b.disabled = false; b.textContent = '최신 환율 불러오기'; }
+};
+
+fillCommon(); renderItems(); render();
+})();
+</script>
+</body>
+</html>
